@@ -1,11 +1,21 @@
-import { prisma } from "@/lib/prisma";
-import {
-  ChevronRightIcon,
-  MagnifyingGlassIcon,
-} from "@heroicons/react/20/solid";
+import Link from 'next/link'
 
-export default async function Users() {
-  const users = await prisma.user.findMany();
+import { prisma } from '@/lib/prisma'
+import { SearchParamsProps } from '@/types'
+import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+
+type User = {
+  id: number
+  name: string
+  email: string
+}
+
+const LIMIT = 10
+
+export default async function Users({ searchParams }: SearchParamsProps) {
+  const page = typeof searchParams.page === 'string' ? +searchParams.page : 1
+
+  const users: User[] = await prisma.user.findMany({ take: LIMIT, skip: (page - 1) * 10 })
 
   return (
     <div className="px-8 bg-gray-50 pt-12 min-h-screen">
@@ -13,10 +23,7 @@ export default async function Users() {
         <div className="w-80">
           <div className="relative mt-1 rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon
-                className="h-5 w-5 text-gray-400"
-                aria-hidden="true"
-              />
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
             </div>
             <input
               type="text"
@@ -60,9 +67,7 @@ export default async function Users() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {users.map((user) => (
                     <tr key={user.id}>
-                      <td className="whitespace-nowrap py-4 pr-3 text-sm font-medium text-gray-900 pl-4">
-                        {user.id}
-                      </td>
+                      <td className="whitespace-nowrap py-4 pr-3 text-sm font-medium text-gray-900 pl-4">{user.id}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm font-medium max-w-[130px] sm:w-auto truncate">
                         {user.name}
                       </td>
@@ -70,10 +75,7 @@ export default async function Users() {
                         {user.email}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-4 pr-4 text-right text-sm font-medium">
-                        <a
-                          href="#"
-                          className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"
-                        >
+                        <a href="#" className="text-indigo-600 hover:text-indigo-900 inline-flex items-center">
                           Edit
                           <ChevronRightIcon className="w-4 h-4" />
                         </a>
@@ -86,6 +88,9 @@ export default async function Users() {
           </div>
         </div>
       </div>
+
+      {/* Pagination control */}
+      <Link href={`/?page=${page + 1}`}>Next</Link>
     </div>
-  );
+  )
 }
