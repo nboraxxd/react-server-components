@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import type { Url } from 'next/dist/shared/lib/router/router'
 
+import { cn } from '@/utils'
 import { prisma } from '@/lib/prisma'
 import { SearchParamsProps } from '@/types'
-import { ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 
 type User = {
   id: number
@@ -10,12 +12,30 @@ type User = {
   email: string
 }
 
-const LIMIT = 10
+interface PaginationLinkProps {
+  children: React.ReactNode
+  href?: Url
+  disabled?: boolean
+}
+
+const PAGE_SIZE = 7
 
 export default async function Users({ searchParams }: SearchParamsProps) {
-  const page = typeof searchParams.page === 'string' ? +searchParams.page : 1
+  const totalUsers = await prisma.user.count()
+  const totalPages = Math.ceil(totalUsers / PAGE_SIZE)
 
-  const users: User[] = await prisma.user.findMany({ take: LIMIT, skip: (page - 1) * 10 })
+  // const page =
+  //   typeof searchParams.page === 'string'
+  //     ? +searchParams.page > 1 && +searchParams.page <= totalPages
+  //       ? +searchParams.page
+  //       : +searchParams.page > totalPages
+  //       ? totalPages
+  //       : 1
+  //     : 1
+
+  const page = typeof searchParams.page === 'string' ? Math.max(1, Math.min(+searchParams.page, totalPages)) : 1
+
+  const users: User[] = await prisma.user.findMany({ take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE })
 
   return (
     <div className="px-8 bg-gray-50 pt-12 min-h-screen">
@@ -34,7 +54,7 @@ export default async function Users({ searchParams }: SearchParamsProps) {
             />
           </div>
         </div>
-        <div className="mt-0 ml-16 flex-none">
+        <div className="mt-0 ml-8 flex-none">
           <button
             type="button"
             className="block rounded-md bg-indigo-600 py-1.5 px-3 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -89,8 +109,37 @@ export default async function Users({ searchParams }: SearchParamsProps) {
         </div>
       </div>
 
-      {/* Pagination control */}
-      <Link href={`/?page=${page + 1}`}>Next</Link>
+      {/* Pagination */}
+      <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3">
+        <p className="text-sm text-gray-700">
+          Showing <span className="font-semibold">{(page - 1) * PAGE_SIZE + 1}</span> to{' '}
+          <span className="font-semibold">{Math.min(page * PAGE_SIZE, totalUsers)}</span> of{' '}
+          <span className="font-semibold">{totalUsers}</span> users
+        </p>
+        <div className="sm:mr-3 space-x-2 max-sm:self-end">
+          <PaginationLink href={page > 2 ? `/?page=${page - 1}` : page === 1 ? undefined : '/'} disabled={page === 1}>
+            <ChevronLeftIcon className="size-4" />
+          </PaginationLink>
+          <PaginationLink href={page < totalPages ? `/?page=${page + 1}` : undefined} disabled={page === totalPages}>
+            <ChevronRightIcon className="size-4" />
+          </PaginationLink>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function PaginationLink({ children, href, disabled }: PaginationLinkProps) {
+  const paginationClassName = cn(
+    'shadow bg-white border border-gray-300 px-2 py-1.5 inline-flex items-center justify-center text-sm text-gray-900 font-semibold rounded-md hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors',
+    { 'pointer-events-none opacity-50': disabled }
+  )
+
+  return href ? (
+    <Link href={href} className={paginationClassName}>
+      {children}
+    </Link>
+  ) : (
+    <span className={paginationClassName}>{children}</span>
   )
 }
