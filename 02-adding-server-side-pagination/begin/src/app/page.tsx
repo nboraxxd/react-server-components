@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import type { Url } from 'next/dist/shared/lib/router/router'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid'
 
 import { cn } from '@/utils'
 import { prisma } from '@/lib/prisma'
 import { SearchParamsProps } from '@/types'
-import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+import { SearchInput } from '@/app/search-input'
 
 type User = {
   id: number
@@ -21,38 +22,24 @@ interface PaginationLinkProps {
 const PAGE_SIZE = 7
 
 export default async function Users({ searchParams }: SearchParamsProps) {
-  const totalUsers = await prisma.user.count()
-  const totalPages = Math.ceil(totalUsers / PAGE_SIZE)
+  const search = typeof searchParams.search === 'string' ? searchParams.search : ''
 
-  // const page =
-  //   typeof searchParams.page === 'string'
-  //     ? +searchParams.page > 1 && +searchParams.page <= totalPages
-  //       ? +searchParams.page
-  //       : +searchParams.page > totalPages
-  //       ? totalPages
-  //       : 1
-  //     : 1
+  const totalUsers = await prisma.user.count({ where: { name: { contains: search } } })
+  const totalPages = Math.ceil(totalUsers / PAGE_SIZE)
 
   const page = typeof searchParams.page === 'string' ? Math.max(1, Math.min(+searchParams.page, totalPages)) : 1
 
-  const users: User[] = await prisma.user.findMany({ take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE })
+  const users: User[] = await prisma.user.findMany({
+    take: PAGE_SIZE,
+    skip: (page - 1) * PAGE_SIZE,
+    where: { name: { contains: search } },
+  })
 
   return (
     <div className="px-8 bg-gray-50 pt-12 min-h-screen">
       <div className="flex items-center justify-between">
         <div className="w-80">
-          <div className="relative mt-1 rounded-md shadow-sm">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </div>
-            <input
-              type="text"
-              name="search"
-              id="search"
-              className="block w-full rounded-md border-gray-300 pl-10 focus:ring-0 focus:border-gray-400 focus:outline-none text-sm"
-              placeholder="Search"
-            />
-          </div>
+          <SearchInput />
         </div>
         <div className="mt-0 ml-8 flex-none">
           <button
