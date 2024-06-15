@@ -1,8 +1,6 @@
 import Link from 'next/link'
-import type { Url } from 'next/dist/shared/lib/router/router'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid'
 
-import { cn } from '@/utils'
 import { prisma } from '@/lib/prisma'
 import { SearchParamsProps } from '@/types'
 import { SearchInput } from '@/app/search-input'
@@ -15,14 +13,16 @@ type User = {
 
 interface PaginationLinkProps {
   children: React.ReactNode
-  href?: Url
-  disabled?: boolean
+  currentSearchParams: URLSearchParams
+  direction: 'previous' | 'next'
+  page: number
+  totalPages: number
 }
 
 const PAGE_SIZE = 7
 
 export default async function Users({ searchParams }: SearchParamsProps) {
-  const search = typeof searchParams.search === 'string' ? searchParams.search : ''
+  const search = typeof searchParams.search === 'string' ? searchParams.search : undefined
 
   const totalUsers = await prisma.user.count({ where: { name: { contains: search } } })
   const totalPages = Math.ceil(totalUsers / PAGE_SIZE)
@@ -34,6 +34,11 @@ export default async function Users({ searchParams }: SearchParamsProps) {
     skip: (page - 1) * PAGE_SIZE,
     where: { name: { contains: search } },
   })
+
+  const currentSearchParams = new URLSearchParams()
+  if (search) {
+    currentSearchParams.set('search', search)
+  }
 
   return (
     <div className="px-8 bg-gray-50 pt-12 min-h-screen">
@@ -104,10 +109,20 @@ export default async function Users({ searchParams }: SearchParamsProps) {
           <span className="font-semibold">{totalUsers}</span> users
         </p>
         <div className="sm:mr-3 space-x-2 max-sm:self-end">
-          <PaginationLink href={page > 2 ? `/?page=${page - 1}` : page === 1 ? undefined : '/'} disabled={page === 1}>
+          <PaginationLink
+            direction="previous"
+            page={page}
+            totalPages={totalPages}
+            currentSearchParams={currentSearchParams}
+          >
             <ChevronLeftIcon className="size-4" />
           </PaginationLink>
-          <PaginationLink href={page < totalPages ? `/?page=${page + 1}` : undefined} disabled={page === totalPages}>
+          <PaginationLink
+            direction="next"
+            page={page}
+            totalPages={totalPages}
+            currentSearchParams={currentSearchParams}
+          >
             <ChevronRightIcon className="size-4" />
           </PaginationLink>
         </div>
@@ -116,17 +131,37 @@ export default async function Users({ searchParams }: SearchParamsProps) {
   )
 }
 
-function PaginationLink({ children, href, disabled }: PaginationLinkProps) {
-  const paginationClassName = cn(
-    'shadow bg-white border border-gray-300 px-2 py-1.5 inline-flex items-center justify-center text-sm text-gray-900 font-semibold rounded-md hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors',
-    { 'pointer-events-none opacity-50': disabled }
-  )
+function PaginationLink({ children, currentSearchParams, page, direction, totalPages }: PaginationLinkProps) {
+  const newSearchParams = new URLSearchParams(currentSearchParams)
 
-  return href ? (
-    <Link href={href} className={paginationClassName}>
+  if (direction === 'previous') {
+    if (page > 2) {
+      newSearchParams.set('page', String(page - 1))
+    } else {
+      newSearchParams.delete('page')
+    }
+  }
+
+  if (direction === 'next') {
+    if (page < totalPages) {
+      newSearchParams.set('page', String(page + 1))
+    } else {
+      newSearchParams.set('page', String(totalPages))
+    }
+  }
+
+  const isAtEdgePage = (direction === 'previous' && page === 1) || (direction === 'next' && page === totalPages)
+
+  const paginationClassName =
+    'shadow bg-white border border-gray-300 px-2 py-1.5 inline-flex items-center justify-center text-sm text-gray-900 font-semibold rounded-md hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors disabled:pointer-events-none disabled:opacity-50'
+
+  return !isAtEdgePage ? (
+    <Link href={`/?${newSearchParams}`} className={paginationClassName}>
       {children}
     </Link>
   ) : (
-    <span className={paginationClassName}>{children}</span>
+    <button className={paginationClassName} disabled={isAtEdgePage}>
+      {children}
+    </button>
   )
 }
