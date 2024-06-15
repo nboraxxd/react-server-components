@@ -11,14 +11,13 @@ export function SearchInput() {
   const [searchText, setSearchText] = useState(searchParams.get('search') ?? '')
 
   const handleSearchInputChange = (ev: ChangeEvent<HTMLInputElement>) => {
-    if (ev.target.value.trim() === '') {
-      router.push('/')
-      setSearchText(ev.target.value)
-      return
-    }
-
-    router.push(`/?search=${ev.target.value.trim()}`)
     setSearchText(ev.target.value)
+
+    const trimmedValue = ev.target.value.trim()
+
+    if (trimmedValue === '') return
+
+    router.push(`/?search=${trimmedValue}`)
   }
   return (
     <div className="relative mt-1 rounded-md shadow-sm">

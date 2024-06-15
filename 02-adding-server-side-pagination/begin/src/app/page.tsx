@@ -22,6 +22,8 @@ interface PaginationLinkProps {
 const PAGE_SIZE = 7
 
 export default async function Users({ searchParams }: SearchParamsProps) {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
   const search = typeof searchParams.search === 'string' ? searchParams.search : undefined
 
   const totalUsers = await prisma.user.count({ where: { name: { contains: search } } })
