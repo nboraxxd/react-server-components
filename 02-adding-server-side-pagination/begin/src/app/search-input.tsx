@@ -1,25 +1,37 @@
 'use client'
 
-import { ChangeEvent, useState } from 'react'
+import { ChangeEvent, useEffect, useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+
+import { Spinner } from '@/components/spinner'
+import useDebounce from '@/hooks/useDebounce'
 
 export function SearchInput() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  const [isPending, startTransition] = useTransition()
+
   const [searchText, setSearchText] = useState(searchParams.get('search') ?? '')
+
+  const debouncedSearchText = useDebounce(searchText, 500)
 
   const handleSearchInputChange = (ev: ChangeEvent<HTMLInputElement>) => {
     setSearchText(ev.target.value)
+  }
 
-    const trimmedValue = ev.target.value.trim()
+  useEffect(() => {
+    const trimmedValue = debouncedSearchText.trim()
 
     const searchParams = new URLSearchParams()
     trimmedValue !== '' ? searchParams.set('search', trimmedValue) : searchParams.delete('search')
 
-    router.push(`/?${searchParams}`)
-  }
+    startTransition(() => {
+      router.push(`/?${searchParams}`)
+    })
+  }, [debouncedSearchText, router])
+
   return (
     <div className="relative mt-1 rounded-md shadow-sm">
       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -34,6 +46,11 @@ export function SearchInput() {
         value={searchText}
         onChange={handleSearchInputChange}
       />
+      {isPending ? (
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+          <Spinner className="size-5 animate-spin text-gray-400" aria-hidden="true" />
+        </div>
+      ) : null}
     </div>
   )
 }
