@@ -1,6 +1,6 @@
 'use client'
 
-import { ChangeEvent, useEffect, useState, useTransition } from 'react'
+import { ChangeEvent, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 
@@ -13,6 +13,7 @@ export function SearchInput() {
 
   const [isPending, startTransition] = useTransition()
 
+  const isMountingRef = useRef(false)
   const [searchText, setSearchText] = useState(searchParams.get('search') ?? '')
 
   const debouncedSearchText = useDebounce(searchText, 500)
@@ -22,6 +23,8 @@ export function SearchInput() {
   }
 
   useEffect(() => {
+    if (!isMountingRef.current && searchText !== '') return
+
     const trimmedValue = debouncedSearchText.trim()
 
     const searchParams = new URLSearchParams()
@@ -30,7 +33,11 @@ export function SearchInput() {
     startTransition(() => {
       router.push(`/?${searchParams}`)
     })
-  }, [debouncedSearchText, router])
+  }, [debouncedSearchText, router, searchText])
+
+  useEffect(() => {
+    isMountingRef.current = true
+  }, [])
 
   return (
     <div className="relative mt-1 rounded-md shadow-sm">
