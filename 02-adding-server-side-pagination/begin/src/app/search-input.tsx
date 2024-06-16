@@ -15,9 +15,10 @@ export function SearchInput() {
 
     const trimmedValue = ev.target.value.trim()
 
-    if (trimmedValue === '') return
+    const searchParams = new URLSearchParams()
+    trimmedValue !== '' ? searchParams.set('search', trimmedValue) : searchParams.delete('search')
 
-    router.push(`/?search=${trimmedValue}`)
+    router.push(`/?${searchParams}`)
   }
   return (
     <div className="relative mt-1 rounded-md shadow-sm">

@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid'
 
 import { prisma } from '@/lib/prisma'
 import { SearchParamsProps } from '@/types'
 import { SearchInput } from '@/app/search-input'
+import { Spinner } from '@/components/spinner'
 
 type User = {
   id: number
@@ -21,8 +23,41 @@ interface PaginationLinkProps {
 
 const PAGE_SIZE = 7
 
-export default async function Users({ searchParams }: SearchParamsProps) {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+export default async function Page({ searchParams }: SearchParamsProps) {
+  return (
+    <div className="px-8 bg-gray-50 pt-12 min-h-screen">
+      <div className="flex items-center justify-between">
+        <div className="w-80">
+          <SearchInput />
+        </div>
+        <div className="mt-0 ml-8 flex-none">
+          <button
+            type="button"
+            className="block rounded-md bg-indigo-600 py-1.5 px-3 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          >
+            Add user
+          </button>
+        </div>
+      </div>
+
+      {/* User table */}
+      <Suspense fallback={<Loading />}>
+        <UserTable searchParams={searchParams} />
+      </Suspense>
+    </div>
+  )
+}
+
+function Loading() {
+  return (
+    <div className="mt-8 flex justify-center items-center">
+      <Spinner className="size-8 animate-spin" />
+    </div>
+  )
+}
+
+async function UserTable({ searchParams }: SearchParamsProps) {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
 
   const search = typeof searchParams.search === 'string' ? searchParams.search : undefined
 
@@ -43,20 +78,7 @@ export default async function Users({ searchParams }: SearchParamsProps) {
   }
 
   return (
-    <div className="px-8 bg-gray-50 pt-12 min-h-screen">
-      <div className="flex items-center justify-between">
-        <div className="w-80">
-          <SearchInput />
-        </div>
-        <div className="mt-0 ml-8 flex-none">
-          <button
-            type="button"
-            className="block rounded-md bg-indigo-600 py-1.5 px-3 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Add user
-          </button>
-        </div>
-      </div>
+    <div>
       <div className="mt-8 flow-root">
         <div className="-my-2 -mx-6">
           <div className="inline-block min-w-full py-2 align-middle px-6">
